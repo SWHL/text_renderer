@@ -9,6 +9,7 @@ Support both latin and non-latin text.
 ```bash
 python main.py --num_img 10 \
                --img_width 0 \
+	       --length 23 \ 
                --chars_file data/chars/chn.txt \
                --fonts_list ./data/fonts_list/chn.txt \
                --corpus_mode list \
