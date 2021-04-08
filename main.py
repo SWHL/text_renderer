@@ -3,7 +3,22 @@
 """
 Generate training and test images.
 """
+import argparse
+import multiprocessing as mp
 import os
+import traceback
+from itertools import repeat
+
+import cv2
+import numpy as np
+from tenacity import retry
+
+import libs.font_utils as font_utils
+import libs.utils as utils
+from libs.config import load_config
+from libs.timer import Timer
+from textrenderer.corpus.corpus_utils import corpus_factory
+from textrenderer.renderer import Renderer
 
 # prevent opencv use all cpus
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -12,22 +27,83 @@ os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['VECLIB_MAXIMUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
 
-import traceback
-import numpy as np
 
-import multiprocessing as mp
-from itertools import repeat
+def parse_args():
+    parser = argparse.ArgumentParser()
 
-import cv2
+    parser.add_argument('--num_img', type=int, default=20,
+                        help="Number of images to generate")
 
-from libs.config import load_config
-from libs.timer import Timer
-from parse_args import parse_args
-import libs.utils as utils
-import libs.font_utils as font_utils
-from textrenderer.corpus.corpus_utils import corpus_factory
-from textrenderer.renderer import Renderer
-from tenacity import retry
+    parser.add_argument('--length', type=int, default=10,
+                        help='The max length of Chars(chn) or words(eng) '
+                        'in a image. For eng corpus mode, default length is 3')
+
+    parser.add_argument('--clip_max_chars', action='store_true', default=False,
+                        help='For training a CRNN model, max number of chars in an image'
+                             'should less then the width of last CNN layer.')
+
+    parser.add_argument('--img_height', type=int, default=32)
+    parser.add_argument('--img_width', type=int, default=256,
+                        help="If 0, output images will have different width")
+
+    parser.add_argument('--chars_file', type=str, default='./data/chars/chn.txt',
+                        help='Chars allowed to be appear in generated images.')
+
+    parser.add_argument('--config_file', type=str, default='./configs/default.yaml',
+                        help='Set the parameters when rendering images')
+
+    parser.add_argument('--fonts_list', type=str, default='./data/fonts_list/chn.txt',
+                        help='Fonts file path to use')
+
+    parser.add_argument('--bg_dir', type=str, default='./data/bg',
+                        help="Some text images(according to your config in yaml file) will"
+                             "use pictures in this folder as background")
+
+    parser.add_argument('--corpus_dir', type=str, default="./data/corpus",
+                        help='When corpus_mode is chn or eng, text on image will randomly selected from corpus.'
+                             'Recursively find all txt file in corpus_dir')
+
+    parser.add_argument('--corpus_mode', type=str, default='chn', choices=['random', 'chn', 'eng', 'list'],
+                        help='Different corpus type have different load/get_sample method'
+                             'random: random pick chars from chars file'
+                             'chn: pick continuous chars from corpus'
+                             'eng: pick continuous words from corpus, space is included in label')
+
+    parser.add_argument('--output_dir', type=str,
+                        default='./output', help='Images save dir')
+
+    parser.add_argument('--tag', type=str, default='default',
+                        help='output images are saved under output_dir/{tag} dir')
+
+    parser.add_argument('--debug', action='store_true',
+                        default=False, help="output uncroped image")
+
+    parser.add_argument('--viz', action='store_true', default=False)
+
+    parser.add_argument('--strict', action='store_true', default=False,
+                        help="check font supported chars when generating images")
+
+    parser.add_argument('--gpu', action='store_true',
+                        default=False, help="use CUDA to generate image")
+
+    parser.add_argument('--num_processes', type=int, default=None,
+                        help="Number of processes to generate image. If None, use all cpu cores")
+
+    flags, _ = parser.parse_known_args()
+    flags.save_dir = os.path.join(flags.output_dir, flags.tag)
+
+    if os.path.exists(flags.bg_dir):
+        num_bg = len(os.listdir(flags.bg_dir))
+        flags.num_bg = num_bg
+
+    if not os.path.exists(flags.save_dir):
+        os.makedirs(flags.save_dir)
+
+    if flags.num_processes == 1:
+        parser.error("num_processes min value is 2")
+
+    return flags
+
 
 lock = mp.Lock()
 counter = mp.Value('i', 0)
@@ -39,7 +115,8 @@ cfg = load_config(flags.config_file)
 fonts = font_utils.get_font_paths_from_list(flags.fonts_list)
 bgs = utils.load_bgs(flags.bg_dir)
 
-corpus = corpus_factory(flags.corpus_mode, flags.chars_file, flags.corpus_dir, flags.length)
+corpus = corpus_factory(flags.corpus_mode, flags.chars_file,
+                        flags.corpus_dir, flags.length)
 
 renderer = Renderer(corpus, fonts, bgs, cfg,
                     height=flags.img_height,
@@ -125,7 +202,8 @@ def restore_exist_labels(label_path):
     start_index = 0
     if os.path.exists(label_path):
         start_index = len(utils.load_chars(label_path))
-        print('Generate more text images in %s. Start index %d' % (flags.save_dir, start_index))
+        print('Generate more text images in %s. Start index %d' %
+              (flags.save_dir, start_index))
     else:
         print('Generate text images in %s' % flags.save_dir)
     return start_index
@@ -162,7 +240,8 @@ if __name__ == "__main__":
         if not flags.viz:
             pool.apply_async(start_listen, (q, tmp_label_path))
 
-        pool.starmap(generate_img, zip(range(start_index, start_index + flags.num_img), repeat(q)))
+        pool.starmap(generate_img, zip(
+            range(start_index, start_index + flags.num_img), repeat(q)))
 
         q.put(STOP_TOKEN)
         pool.close()

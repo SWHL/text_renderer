@@ -42,7 +42,7 @@ class ChnCorpus(Corpus):
         # 每次 gen_word，随机选一个预料文件，随机获得长度为 word_length 的字符
         line = random.choice(self.corpus)
 
-        random_length = random.randint(0, self.length)
+        random_length = random.randint(2, self.length)
 
         start = np.random.randint(0, len(line) - random_length)
 
