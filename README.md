@@ -1,16 +1,20 @@
-# New version release：https://github.com/oh-my-ocr/text_renderer
-
 # Text Renderer
 Generate text images for training deep learning OCR model (e.g. [CRNN](https://github.com/bgshih/crnn)).
 Support both latin and non-latin text.
 
-# Setup
-- Ubuntu 16.04
-- python 3.5+
-
-Install dependencies:
-```
-pip3 install -r requirements.txt
+# Run bash
+- `--corpus_mode list`: 从指定语料中选取随机选取
+- `--num_img 10`: 合成图像数量
+- `--img_width 0`: 图像大小不一
+```bash
+python main.py --num_img 10 \
+               --img_width 0 \
+               --chars_file data/chars/chn.txt \
+               --fonts_list ./data/fonts_list/chn.txt \
+               --corpus_mode list \
+               --corpus_dir data/corpus \
+               --num_processes 4 \
+               --output_dir output
 ```
 
 # Demo
