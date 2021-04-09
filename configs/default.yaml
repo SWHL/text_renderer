@@ -33,6 +33,11 @@ curve:
   min: 1 # sin 函数的幅值范围
   max: 5
 
+# no padding with the left and right space
+text_no_padding:
+  enable: true
+  fraction: 1
+
 # random crop text height
 crop:
   enable: false
@@ -152,4 +157,3 @@ emboss:
 sharp:
   enable: false
   fraction: 0.1
-

@@ -1,17 +1,17 @@
 import math
 import random
-import numpy as np
+
 import cv2
-from PIL import ImageFont, Image, ImageDraw
+import libs.font_utils as font_utils
+import libs.math_utils as math_utils
+import numpy as np
+from libs.timer import Timer
+from libs.utils import apply, draw_bbox, draw_box, prob
+from PIL import Image, ImageDraw, ImageFont
 from tenacity import retry
 
-import libs.math_utils as math_utils
-from libs.utils import draw_box, draw_bbox, prob, apply
-from libs.timer import Timer
 from textrenderer.liner import Liner
 from textrenderer.noiser import Noiser
-import libs.font_utils as font_utils
-
 # noinspection PyMethodMayBeStatic
 from textrenderer.remaper import Remaper
 
@@ -85,7 +85,12 @@ class Renderer(object):
             _, crop_bbox = self.crop_img(word_img, text_box_pnts_transformed)
             word_img = draw_bbox(word_img, crop_bbox, (255, 0, 0))
         else:
-            word_img, crop_bbox = self.crop_img(word_img, text_box_pnts_transformed)
+            if self.cfg.text_no_padding:
+                word_img, crop_bbox = self.crop_img_no_padding(word_img,
+                                                               text_box_pnts_transformed)
+            else:
+                word_img, crop_bbox = self.crop_img(word_img,
+                                                    text_box_pnts_transformed)
 
         self.dmsg("After crop_img")
 
@@ -189,7 +194,8 @@ class Renderer(object):
                   np.around(bbox[2] / scale),
                   np.around(bbox[3] / scale))
 
-        x_offset, y_offset = self.random_xy_offset(s_bbox_height, s_bbox_width, self.out_height, dst_width)
+        x_offset, y_offset = self.random_xy_offset(s_bbox_height, s_bbox_width,
+                                                   self.out_height, dst_width)
 
         dst_bbox = (
             self.int_around((s_bbox[0] - x_offset) * scale),
@@ -199,9 +205,38 @@ class Renderer(object):
         )
 
         # It's important do crop first and than do resize for speed consider
-        dst = img[dst_bbox[1]:dst_bbox[1] + dst_bbox[3], dst_bbox[0]:dst_bbox[0] + dst_bbox[2]]
+        dst = img[dst_bbox[1]:dst_bbox[1] + dst_bbox[3],
+                  dst_bbox[0]:dst_bbox[0] + dst_bbox[2]]
 
-        dst = cv2.resize(dst, (dst_width, self.out_height), interpolation=cv2.INTER_CUBIC)
+        dst = cv2.resize(dst, (dst_width, self.out_height),
+                         interpolation=cv2.INTER_CUBIC)
+
+        return dst, dst_bbox
+
+    def crop_img_no_padding(self, img, text_box_pnts_transformed):
+        """
+        Crop text from large input image
+        :param img: image to crop
+        :param text_box_pnts_transformed: text_bbox_pnts after
+                                           apply_perspective_transform
+        :return:
+            dst: image with desired output size, height=32, width=flags.img_width
+            crop_bbox: bounding box on input image
+        """
+        bbox = cv2.boundingRect(text_box_pnts_transformed)
+        bbox_width = bbox[2]
+        bbox_height = bbox[3]
+
+        dst_bbox = (
+            self.int_around(bbox[0]),
+            self.int_around(bbox[1]),
+            self.int_around(bbox_width),
+            self.int_around(bbox_height)
+        )
+
+        # It's important do crop first and than do resize for speed consider
+        dst = img[dst_bbox[1]:dst_bbox[1] + dst_bbox[3],
+                  dst_bbox[0]:dst_bbox[0] + dst_bbox[2]]
 
         return dst, dst_bbox
 
