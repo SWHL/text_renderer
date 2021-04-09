@@ -43,7 +43,7 @@ def parse_args():
                              'should less then the width of last CNN layer.')
 
     parser.add_argument('--img_height', type=int, default=32)
-    parser.add_argument('--img_width', type=int, default=256,
+    parser.add_argument('--img_width', type=int, default=0,
                         help="If 0, output images will have different width")
 
     parser.add_argument('--chars_file', type=str, default='./data/chars/chn.txt',
@@ -129,21 +129,19 @@ renderer = Renderer(corpus, fonts, bgs, cfg,
 
 def start_listen(q, fname):
     """ listens for messages on the q, writes to file. """
+    with open(fname, mode='a', encoding='utf-8') as f:
+        while 1:
+            m = q.get()
+            if m == STOP_TOKEN:
+                break
+            try:
+                f.write(str(m) + '\n')
+            except:
+                traceback.print_exc()
 
-    f = open(fname, mode='a', encoding='utf-8')
-    while 1:
-        m = q.get()
-        if m == STOP_TOKEN:
-            break
-        try:
-            f.write(str(m) + '\n')
-        except:
-            traceback.print_exc()
-
-        with lock:
-            if counter.value % 1000 == 0:
-                f.flush()
-    f.close()
+            with lock:
+                if counter.value % 1000 == 0:
+                    f.flush()
 
 
 @retry
@@ -169,7 +167,7 @@ def generate_img(img_index, q=None):
         fname = os.path.join(flags.save_dir, base_name + '.jpg')
         cv2.imwrite(fname, im)
 
-        label = "{} {}".format(base_name, word)
+        label = f"{flags.tag}/{base_name}.jpg\t{word}"
 
         if q is not None:
             q.put(label)

@@ -1,15 +1,19 @@
-# Text Renderer
+#### 2021-04-09 udpate:
+- 修改输出的labels格式，改为：`default/00000006.jpg	一所`
+- 增加合成图像中文本样式没有padding的按钮，`configs\default.yaml→text_no_padding`
+
+#### Text Renderer
 Generate text images for training deep learning OCR model (e.g. [CRNN](https://github.com/bgshih/crnn)).
 Support both latin and non-latin text.
 
-# Run bash
+#### Run bash
 - `--corpus_mode list`: 从指定语料中选取随机选取
 - `--num_img 10`: 合成图像数量
 - `--img_width 0`: 图像大小不一
 ```bash
 python main.py --num_img 10 \
                --img_width 0 \
-	       --length 23 \ 
+	           --length 23 \
                --chars_file data/chars/chn.txt \
                --fonts_list ./data/fonts_list/chn.txt \
                --corpus_mode list \
@@ -18,7 +22,7 @@ python main.py --num_img 10 \
                --output_dir output
 ```
 
-# Demo
+#### Demo
 By default, simply run `python3 main.py` will generate 20 text images
 and a labels.txt file in `output/default/`.
 
@@ -28,7 +32,8 @@ and a labels.txt file in `output/default/`.
 ![example3.jpg](./imgs/example3.jpg)
 ![example4.jpg](./imgs/example4.jpg)
 
-# Use your own data to generate image
+
+#### Use your own data to generate image
 1. Please run `python3 main.py --help` to see all optional arguments and their meanings.
 And put your own data in corresponding folder.
 
@@ -56,7 +61,7 @@ new config file and use it by `--config_file` option), here are some examples:
 
 3. Run `main.py` file.
 
-# Strict mode
+#### Strict mode
 For no-latin language(e.g Chinese), it's very common that some fonts only support
 limited chars. In this case, you will get bad results like these:
 
@@ -70,7 +75,7 @@ Select fonts that support all chars in `--chars_file` is annoying.
 Run `main.py` with `--strict` option, renderer will retry get text from
 corpus during generate processing until all chars are supported by a font.
 
-# Tools
+#### Tools
 You can use `check_font.py` script to check how many chars your font not support in `--chars_file`:
 ```bash
 python3 tools/check_font.py
@@ -82,7 +87,7 @@ chars not supported(4971):
 []
 ```
 
-# Generate image using GPU
+#### Generate image using GPU
 If you want to use GPU to make generate image faster, first compile opencv with CUDA.
 [Compiling OpenCV with CUDA support](https://www.pyimagesearch.com/2016/07/11/compiling-opencv-with-cuda-support/)
 
@@ -92,18 +97,18 @@ cd libs/gpu
 python3 setup.py build_ext --inplace
 ```
 
-# Debug mode
+#### Debug mode
 Run `python3 main.py --debug` will save images with extract information.
 You can see how perspectiveTransform works and all bounding/rotated boxes.
 
 ![debug_demo](./imgs/debug_demo.jpg)
 
 
-# Todo
+#### Todo
 See https://github.com/Sanster/text_renderer/projects/1
 
 
-## Citing text_renderer
+##### Citing text_renderer
 
 If you use text_renderer in your research, please consider use the following BibTeX entry.
 

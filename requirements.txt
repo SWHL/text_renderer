@@ -1,9 +1,7 @@
-Cython
-opencv-python
-pillow
-numpy
-matplotlib
-fontTools
-tenacity
-easyDict
-pyyaml==5.1
+opencv_python==4.2.0.32
+easydict==1.9
+tqdm==4.52.0
+tenacity==7.0.0
+Cython==0.29.22
+numpy==1.19.5
+matplotlib==3.3.3
